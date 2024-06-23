@@ -3,6 +3,7 @@
   python3Packages,
   pkgs,
   fetchFromGitHub,
+  fetchPypi,
 }:
 let
 
@@ -24,6 +25,14 @@ let
     };
   });
 
+  requests = python3Packages.requests.overrideAttrs (oldAttrs: {
+    src = fetchPypi {
+      pname = "requests";
+      version = "2.32.1";
+      hash = "sha256-65fofmTHnmTluKx1zundH5f0niibCD7mvpYmiTByVoU=";
+    };
+  });
+
 in
 python3Packages.buildPythonPackage {
   # use pyproject.toml instead of setup.py
@@ -37,7 +46,7 @@ python3Packages.buildPythonPackage {
 
   buildInputs = with pkgs; [gtk3 python3Packages.poetry-core];
 
-  propagatedBuildInputs = with python3Packages; [requests pygobject3 click distro psutil setuptools poetry-dynamic-versioning pyinotify];
+  propagatedBuildInputs = with python3Packages; [requests pygobject3 click distro psutil setuptools poetry-dynamic-versioning pyinotify pkgs.getent];
 
   doCheck = false;
   pythonImportsCheck = ["auto_cpufreq"];
@@ -48,11 +57,11 @@ python3Packages.buildPythonPackage {
   ];
 
   postPatch = ''
-    substituteInPlace auto_cpufreq/core.py --replace '/opt/auto-cpufreq/override.pickle' /var/run/override.pickle
-    substituteInPlace scripts/org.auto-cpufreq.pkexec.policy --replace "/opt/auto-cpufreq/venv/bin/auto-cpufreq" $out/bin/auto-cpufreq
+    substituteInPlace auto_cpufreq/core.py --replace-fail '/opt/auto-cpufreq/override.pickle' /var/run/override.pickle
+    substituteInPlace scripts/org.auto-cpufreq.pkexec.policy --replace-fail "/opt/auto-cpufreq/venv/bin/auto-cpufreq" $out/bin/auto-cpufreq
 
-    substituteInPlace auto_cpufreq/gui/app.py auto_cpufreq/gui/objects.py --replace "/usr/local/share/auto-cpufreq/images/icon.png" $out/share/pixmaps/auto-cpufreq.png
-    substituteInPlace auto_cpufreq/gui/app.py --replace "/usr/local/share/auto-cpufreq/scripts/style.css" $out/share/auto-cpufreq/scripts/style.css
+    substituteInPlace auto_cpufreq/gui/app.py auto_cpufreq/gui/objects.py --replace-fail "/usr/local/share/auto-cpufreq/images/icon.png" $out/share/pixmaps/auto-cpufreq.png
+    substituteInPlace auto_cpufreq/gui/app.py --replace-fail "/usr/local/share/auto-cpufreq/scripts/style.css" $out/share/auto-cpufreq/scripts/style.css
   '';
 
   postInstall = ''
@@ -66,7 +75,6 @@ python3Packages.buildPythonPackage {
     # systemd service
     mkdir -p $out/lib/systemd/system
     cp scripts/auto-cpufreq.service $out/lib/systemd/system
-    substituteInPlace $out/lib/systemd/system/auto-cpufreq.service --replace "/usr/local" $out
 
     # desktop icon
     mkdir -p $out/share/applications
@@ -79,12 +87,12 @@ python3Packages.buildPythonPackage {
     cp scripts/org.auto-cpufreq.pkexec.policy $out/share/polkit-1/actions
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/AdnanHodzic/auto-cpufreq";
     description = "Automatic CPU speed & power optimizer for Linux";
-    license = licenses.lgpl3Plus;
-    platforms = platforms.linux;
-    maintainers = [maintainers.Technical27];
+    license = lib.licenses.lgpl3Plus;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [Technical27];
     mainProgram = "auto-cpufreq";
   };
 }
